@@ -1,25 +1,96 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# PROJECT 1- REPRODUCIBLE RESEARCH
+Author: Dominik Vuksan
 
+Mostly, we will be following the project props as they appear in order on Coursera.
 
-## Loading and preprocessing the data
+So, let us get started.
 
+Since there's going to be data analyzing and editing, we want the tidyverse package loaded for this analyisis. Also, when we look at the variable types, we see that we need to transform the date variable to actual "date".
+``` {r}
 
+library(tidyverse)
+data= read.csv("activity.csv")
+str(data)
 
-## What is mean total number of steps taken per day?
+library(lubridate)
+data$date= ymd(data$date)
+```
 
+After we transformed and edited our raw data, now we are heading for some cool analyses.
 
+```{r}
+steps.each.day= data %>% filter(!is.na(steps)) %>% group_by(date) %>% summarise(total.steps= sum(steps))
+```
 
-## What is the average daily activity pattern?
+``` {r}
+ggplot(steps.each.day) + geom_histogram(aes(x= total.steps))
+```
 
+Now we're going to calculate the mean and median steps values.
+```{r}
+mean.steps= mean(steps.each.day$total.steps)
+median.steps= median(steps.each.day$total.steps)
+```
 
+Now we're filtering data for the time series plotting.
+```{r}
+time.series= data %>% filter(!is.na(steps)) %>% group_by(interval) %>% summarise (total.steps= sum(steps))
+```
 
-## Imputing missing values
+The time series plot.
+``` {r}
+ggplot(time.series) + geom_line(mapping= aes(x= interval, y= total.steps))
+```
 
+The 5-minute interval that, on average, contains the maximum number of steps.
+``` {r}
+time.series[which.max(time.series$total.steps), ]
+```
 
+Now, we'll see how much of NA's is there in the dataset.
+```{r}
+sum(is.na(data))
 
-## Are there differences in activity patterns between weekdays and weekends?
+```
+
+Now we'll be removing the NA values in the "steps" variable in the dataset of ours. 
+
+```{r}
+data$steps= ifelse(is.na(data$steps), mean.steps, data$steps)
+```
+Creating a new dataset with mean steps instead of NA
+```{r}
+
+data1= data
+```
+
+Since we've got 2 same datasets (data and data1), we'll return to the "data" dataset as before because it is better to stick to the original dataset- how are you going to be doing 10766.18 (mean.steps) in 5 minutes- are you Lightning McQueen or Flash or someone else like them?. You get the point. 
+```{r}
+data$steps= ifelse(mean.steps, NA, data$steps)
+```
+
+Getting a day in the week for each date.
+```{r}
+
+data1$date= weekdays(data1$date)
+data$date= weekdays(data$date)
+```
+
+Adding a new column "week". If it's a weekday, in the column will appear "weekday". If it's a weekend day, in the coulmn will appear "weekend".
+```{r}
+data1= mutate(data1, week= ifelse(data1$date== "subota" | data1$date== "nedjelja", "weekend", "weekday"))
+```
+
+Filtering the weekdays and weekend days for the plot.
+```{r}
+week.activity= data1 %>% group_by(interval, week) %>% summarise(total.steps= sum(steps))
+
+```
+
+Making a plot.
+```{r}
+ggplot(week.activity) + geom_line(mapping= aes(x= interval, y= total.steps, color= week)) + facet_wrap(~week, ncol= 2)
+
+```
+
+The problem here is also the one mentioned above: "Since we've got 2 same datasets (data and data1), we'll return to the "data" dataset as before because it is better to stick to the original dataset- how are you going to be doing 10766.18 (mean.steps) in 5 minutes- are you Lightning McQueen or Flash or someone else like them?. You get the point."
